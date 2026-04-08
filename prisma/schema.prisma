@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model VaiTro {
+  id         String      @id @default(auto()) @map("_id") @db.ObjectId
+  name       String
+  nguoiDungs NguoiDung[]
+
+  @@map("vai_tro")
+}
+
+model NguoiDung {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  name        String?
+  password    String
+  soDienThoai String       @map("so_dien_thoai")
+  roleId      String       @map("role_id") @db.ObjectId
+  lichSus     LichSu[]
+  vaiTro      VaiTro       @relation(fields: [roleId], references: [id])
+  teamsOwned  Team[]       @relation("TeamOwner")
+  teamMembers TeamMember[]
+
+  @@map("nguoi_dung")
+}
+
+model SanBong {
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+  baoTri   Boolean?  @default(false) @map("bao_tri")
+  deleted  Boolean?  @default(false)
+  soNguoi  Int?      @map("so_nguoi")
+  giaTiens GiaTien[]
+  hinhAnhs HinhAnh[]
+  lichSus  LichSu[]
+  matches  Match[]
+
+  @@map("san_bong")
+}
+
+model GiaTien {
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId
+  giaTien    Float?  @map("gia_tien")
+  gioBatDau  String? @map("gio_bat_dau")
+  gioKetThuc String? @map("gio_ket_thuc")
+  sanBongId  String  @map("san_bong_id") @db.ObjectId
+  sanBong    SanBong @relation(fields: [sanBongId], references: [id], onDelete: Cascade)
+
+  @@map("gia_tien")
+}
+
+model HinhAnh {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  thuTu     Int?    @map("thu_tu")
+  url       String?
+  sanBongId String  @map("san_bong_id") @db.ObjectId
+  sanBong   SanBong @relation(fields: [sanBongId], references: [id], onDelete: Cascade)
+
+  @@map("hinh_anh")
+}
+
+model LichSu {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  giaTien     Float?       @map("gia_tien")
+  gioBatDau   String?      @map("gio_bat_dau")
+  gioKetThuc  String?      @map("gio_ket_thuc")
+  ngayDat     DateTime?    @map("ngay_dat")
+  trangThai   LichSuStatus @default(CHO_XAC_NHAN) @map("trang_thai")
+  nguoiDungId String       @map("nguoi_dung_id") @db.ObjectId
+  sanBongId   String       @map("san_bong_id") @db.ObjectId
+  nguoiDung   NguoiDung    @relation(fields: [nguoiDungId], references: [id], onDelete: Cascade)
+  sanBong     SanBong      @relation(fields: [sanBongId], references: [id], onDelete: Cascade)
+
+  @@map("lich_su")
+}
+
+model Team {
+  id              String           @id @default(auto()) @map("_id") @db.ObjectId
+  moTa            String?          @map("mo_ta")
+  tenDoi          String           @map("ten_doi")
+  chuDoiId        String           @map("chu_doi_id") @db.ObjectId
+  events          MatchEvent[]
+  chuDoi          NguoiDung        @relation("TeamOwner", fields: [chuDoiId], references: [id], onDelete: Cascade)
+  teamMembers     TeamMember[]
+  tournamentTeams TournamentTeam[]
+  awayMatches     Match[]          @relation("AwayTeam")
+  homeMatches     Match[]          @relation("HomeTeam")
+
+  @@map("team")
+}
+
+model TeamMember {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  trangThai   String?      @map("trang_thai")
+  nguoiDungId String       @map("nguoi_dung_id") @db.ObjectId
+  teamId      String       @map("team_id") @db.ObjectId
+  events      MatchEvent[]
+  nguoiDung   NguoiDung    @relation(fields: [nguoiDungId], references: [id], onDelete: Cascade)
+  team        Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@map("team_member")
+}
+
+model Tournament {
+  id              String           @id @default(auto()) @map("_id") @db.ObjectId
+  moTa            String?          @map("mo_ta")
+  ngayBatDau      DateTime?        @map("ngay_bat_dau")
+  ngayKetThuc     DateTime?        @map("ngay_ket_thuc")
+  soDoiToiDa      Int?             @map("so_doi_toi_da")
+  tenGiai         String           @map("ten_giai")
+  trangThai       String?          @map("trang_thai")
+  tournamentTeams TournamentTeam[]
+  matches         Match[]
+
+  @@map("tournament")
+}
+
+model TournamentTeam {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  diem         Int?       @default(0)
+  soBanThang   Int?       @default(0) @map("so_ban_thang")
+  soBanThua    Int?       @default(0) @map("so_ban_thua")
+  soTranHoa    Int?       @default(0) @map("so_tran_hoa")
+  soTranThang  Int?       @default(0) @map("so_tran_thang")
+  soTranThua   Int?       @default(0) @map("so_tran_thua")
+  trangThai    String?    @map("trang_thai")
+  teamId       String     @map("team_id") @db.ObjectId
+  tournamentId String     @map("tournament_id") @db.ObjectId
+  team         Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@map("tournament_team")
+}
+
+model Match {
+  id           String       @id @default(auto()) @map("_id") @db.ObjectId
+  awayScore    Int?         @map("away_score")
+  deleted      Boolean?     @default(false)
+  homeScore    Int?         @map("home_score")
+  matchDate    DateTime?    @map("match_date")
+  notes        String?
+  referee      String?
+  round        String?
+  status       MatchStatus?
+  awayTeamId   String       @map("away_team_id") @db.ObjectId
+  homeTeamId   String       @map("home_team_id") @db.ObjectId
+  sanBongId    String?      @map("san_bong_id") @db.ObjectId
+  tournamentId String       @map("tournament_id") @db.ObjectId
+  events       MatchEvent[]
+  awayTeam     Team         @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+  homeTeam     Team         @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
+  sanBong      SanBong?     @relation(fields: [sanBongId], references: [id])
+  tournament   Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@map("tran_dau")
+}
+
+model MatchEvent {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  deleted     Boolean?    @default(false)
+  description String?
+  eventType   EventType   @map("event_type")
+  minute      Int?
+  matchId     String      @map("match_id") @db.ObjectId
+  playerId    String?     @map("player_id") @db.ObjectId
+  teamId      String      @map("team_id") @db.ObjectId
+  match       Match       @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  player      TeamMember? @relation(fields: [playerId], references: [id])
+  team        Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@map("match_event")
+}
+
+enum LichSuStatus {
+  CHO_XAC_NHAN
+  DA_XAC_NHAN
+  DA_HUY
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  HALF_TIME
+  FINISHED
+  POSTPONED
+  CANCELLED
+}
+
+enum EventType {
+  GOAL
+  OWN_GOAL
+  PENALTY
+  YELLOW_CARD
+  RED_CARD
+  SUBSTITUTION
+  INJURY
+}
